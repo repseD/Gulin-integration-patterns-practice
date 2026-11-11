@@ -1,0 +1,70 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # management UI (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  orchestrator:
+    build: .
+    container_name: orchestrator
+    environment:
+      RABBIT_HOST: rabbitmq
+    command: python orchestrator.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+
+
+  #исполнители
+  drilling-service:
+    build: .
+    container_name: drilling-service
+    environment:
+      RABBIT_HOST: rabbitmq
+      SERVICE_TYPE: drilling
+    command: python executor.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  electrical-service:
+    build: .
+    container_name: electrical-service
+    environment:
+      RABBIT_HOST: rabbitmq
+      SERVICE_TYPE: electrical
+    command: python executor.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  logistics-service:
+    build: .
+    container_name: logistics-service
+    environment:
+      RABBIT_HOST: rabbitmq
+      SERVICE_TYPE: logistics
+    command: python executor.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+
+
+  initiator:
+    build: .
+    container_name: initiator
+    environment:
+      RABBIT_HOST: rabbitmq
+    command: python initiator.py
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
